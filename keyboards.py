@@ -1,9 +1,7 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import ADMIN_ID
-
-CROPS = ["Пшеница", "Ячмень", "Кукуруза", "Подсолнечник"]
+from config import ADMIN_ID, CHOICES
 
 # Меню для клиентов
 MENU = ReplyKeyboardMarkup(
@@ -31,7 +29,7 @@ def menu_for(user_id):
 
 def crops_keyboard():
     kb = InlineKeyboardBuilder()
-    for crop in CROPS:
+    for crop in CHOICES:
         kb.button(text=crop, callback_data=f"crop:{crop}")
     kb.adjust(2)
     return kb.as_markup()

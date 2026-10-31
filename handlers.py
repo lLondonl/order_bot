@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
 import db
-from config import ADMIN_ID
+from config import ADMIN_ID, ASK_AMOUNT, ASK_CHOICE, ASK_PHONE, ASK_PLACE, CONTACTS, WELCOME
 from keyboards import classes_keyboard, confirm_keyboard, crops_keyboard, menu_for, take_keyboard
 from states import Order
 
@@ -15,7 +15,7 @@ router = Router()
 @router.message(CommandStart())
 async def start(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Здравствуйте! Я приму вашу заявку.", reply_markup=menu_for(message.from_user.id))
+    await message.answer(WELCOME, reply_markup=menu_for(message.from_user.id))
 
 
 @router.message(Command("cancel"))
@@ -28,7 +28,7 @@ async def cancel(message: Message, state: FSMContext):
 @router.message(F.text == "Новая заявка")
 async def new_order(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Что хотите продать?", reply_markup=crops_keyboard())
+    await message.answer(ASK_CHOICE, reply_markup=crops_keyboard())
 
 
 @router.message(F.text == "Мои заявки")
@@ -49,7 +49,7 @@ async def my_orders(message: Message):
 
 @router.message(F.text == "Контакты")
 async def contacts(message: Message):
-    await message.answer("Звоните: +7 900 000-00-00\nПишите: @your_username")
+    await message.answer(CONTACTS)
 
 
 # ===== Выбор культуры и класса =====
@@ -61,7 +61,7 @@ async def crop_chosen(callback: CallbackQuery, state: FSMContext):
     else:
         await state.update_data(crop=crop)
         await state.set_state(Order.tonnes)
-        await callback.message.answer(f"{crop}. Какой объём, в тоннах?")
+        await callback.message.answer(f"{crop}. {ASK_AMOUNT}")
     await callback.answer()
 
 
@@ -71,7 +71,7 @@ async def class_chosen(callback: CallbackQuery, state: FSMContext):
     crop = f"Пшеница {grain_class} кл"
     await state.update_data(crop=crop)
     await state.set_state(Order.tonnes)
-    await callback.message.answer(f"{crop}. Какой объём, в тоннах?")
+    await callback.message.answer(f"{crop}. {ASK_AMOUNT}")
     await callback.answer()
 
 @router.message(Command("stats"))
@@ -107,14 +107,14 @@ async def got_tonnes(message: Message, state: FSMContext):
         return
     await state.update_data(tonnes=tonnes)
     await state.set_state(Order.place)
-    await message.answer("Где находится товар? Район или населённый пункт")
+    await message.answer(ASK_PLACE)
 
 
 @router.message(Order.place)
 async def got_place(message: Message, state: FSMContext):
     await state.update_data(place=message.text)
     await state.set_state(Order.phone)
-    await message.answer("Ваш телефон для связи?")
+    await message.answer(ASK_PHONE)
 
 
 @router.message(Order.phone)
@@ -167,7 +167,7 @@ async def confirm_yes(callback: CallbackQuery, state: FSMContext):
 async def confirm_no(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.answer("Хорошо, заполним заново. Что хотите продать?",
+    await callback.message.answer(f"Хорошо, заполним заново. {ASK_CHOICE}",
                                   reply_markup=crops_keyboard())
     await callback.answer()
 
@@ -194,6 +194,15 @@ async def take_order(callback: CallbackQuery):
     )
     await callback.answer()
 
+
 @router.message(Order.confirm)
 async def confirm_text(message: Message):
     await message.answer("Нажмите кнопку под заявкой: «Подтвердить» или «Заполнить заново».")
+
+
+@router.message()
+async def fallback(message: Message):
+    await message.answer(
+        "Я принимаю заявки на продажу. Нажмите «Новая заявка» внизу.",
+        reply_markup=menu_for(message.from_user.id),
+    )
